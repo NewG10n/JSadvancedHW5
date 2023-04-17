@@ -142,7 +142,9 @@ class Card {
         form.reset();
         addModal.style.display = "none";
 
-        await TwiApp.renderCards([card.createCard()]);
+        await TwiApp.renderCards(
+          new Promise((resolve, reject) => card.createCard())
+        );
       }
     });
   }
