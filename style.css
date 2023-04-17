@@ -4,6 +4,7 @@
   bottom: 0;
   left: 0;
   right: 0;
+  background: #fff;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -12,7 +13,7 @@
 .loader {
   width: 48px;
   height: 48px;
-  border: 3px solid #fff;
+  border: 3px solid #545454;
   border-radius: 50%;
   display: inline-block;
   position: relative;
@@ -40,6 +41,23 @@
   100% {
     transform: rotate(360deg);
   }
+}
+
+.add-modal {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #fff;
+  display: none;
+  justify-content: center;
+  align-items: center;
+}
+
+#add-form {
+  display: flex;
+  flex-direction: column;
 }
 
 .cards {
