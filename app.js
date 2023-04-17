@@ -9,7 +9,7 @@ class HttpClient {
     try {
       return await (await fetch(this.usersURL)).json();
     } catch (e) {
-      alert(e.message);
+      console.log(e.message);
     }
   }
 
@@ -17,7 +17,7 @@ class HttpClient {
     try {
       return await (await fetch(this.postsURL)).json();
     } catch (e) {
-      alert(e.message);
+      console.log(e.message);
     }
   }
 
@@ -35,7 +35,7 @@ class HttpClient {
         },
       });
     } catch (e) {
-      alert(e.message);
+      console.log(e.message);
     }
   }
 
@@ -45,7 +45,7 @@ class HttpClient {
         method: "DELETE",
       });
     } catch (e) {
-      alert(e.message);
+      console.log(e.message);
     }
   }
 }
@@ -58,8 +58,21 @@ class TwiApp {
   async addPost() {
     const addBtn = document.querySelector("#add");
     addBtn.addEventListener("click", (e) => {
-      Card.handleAdd();
       e.preventDefault();
+      const formModal = document.createElement("div");
+      formModal.classList.add("add-modal");
+
+      formModal.innerHTML = `
+          <form id="add-form">
+            <label>Input title:<input type="text" id="add__title" /></label>
+            <label for="add__body">Input message</label>
+            <textarea id="add__body"></textarea>
+            <button type="submit" form="add-form" value="Submit">Add</button>
+          </form>
+        `;
+
+      document.body.prepend(formModal);
+      Card.handleAdd();
     });
   }
 
@@ -85,9 +98,8 @@ class TwiApp {
     const cardsContainer = document.querySelector(".cards");
 
     cardsContainer.addEventListener("click", (e) => {
-      const target = e.target;
-      if (target.classList.contains("delete-btn")) {
-        Card.handleDelete(target);
+      if (e.target.classList.contains("delete-btn")) {
+        Card.handleDelete(e.target);
         e.preventDefault();
       }
     });
@@ -125,26 +137,25 @@ class Card {
   }
 
   static async handleAdd() {
-    const addModal = document.querySelector(".add-modal");
-    addModal.style.display = "flex";
+    const formModal = document.querySelector(".add-modal");
     const form = document.querySelector("#add-form");
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       const userId = "1";
       const title = form.querySelector("#add__title").value || " ";
       const body = form.querySelector("#add__body").value || " ";
-      const response = await httpClient.postPost(userId, title, body);
+      try {
+        const response = await httpClient.postPost(userId, title, body);
 
-      if (response.ok) {
-        const { userId, id, title, body } = await response.json();
-        const card = new Card(userId, "RK", "rk@gm.co", id, title, body);
-
-        form.reset();
-        addModal.style.display = "none";
-
-        await TwiApp.renderCards(
-          new Promise((resolve, reject) => card.createCard())
-        );
+        if (response.ok) {
+          const { userId, id, title, body } = await response.json();
+          const addedCard = new Card(userId, "RK", "rk@gm.co", id, title, body);
+          formModal.remove();
+          console.log(addedCard);
+          await TwiApp.renderCards([addedCard]);
+        }
+      } catch (e) {
+        console.log(e.message);
       }
     });
   }
@@ -157,7 +168,7 @@ class Card {
     if (response.ok) {
       card.remove();
     } else {
-      alert(response.message);
+      console.log(response.message);
     }
   }
 }
