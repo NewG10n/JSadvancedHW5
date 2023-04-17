@@ -1,6 +1,6 @@
 class HttpClient {
-  constructor() {
-    this.API_URL = "https://ajax.test-danit.com/api/json/";
+  constructor(url) {
+    this.API_URL = url;
     this.usersURL = this.API_URL + "users/";
     this.postsURL = this.API_URL + "posts/";
   }
@@ -52,17 +52,38 @@ class HttpClient {
 class TwiApp {
   constructor(httpClient) {
     this.httpClient = httpClient;
-    this.addPost();
+    this.addBtn = document.querySelector("#add");
+    this.cardsContainer = document.querySelector(".cards");
+    this.loadModal = document.querySelector(".load-modal");
+    this.addListeners();
+    this.renderCards(this.generateCards());
   }
 
-  async addPost() {
-    const addBtn = document.querySelector("#add");
-    addBtn.addEventListener("click", (e) => {
+  async addListeners() {
+    this.addBtn.addEventListener("click", (e) => {
       e.preventDefault();
-      const formModal = document.createElement("div");
-      formModal.classList.add("add-modal");
+      this.handleAdd();
+    });
 
-      formModal.innerHTML = `
+    this.cardsContainer.addEventListener("click", (e) => {
+      if (e.target.classList.contains("delete-btn")) {
+        e.preventDefault();
+        this.handleDelete(e.target);
+      }
+    });
+  }
+
+  async handleAdd() {
+    const formModal = this.createFormModal();
+    document.body.prepend(formModal);
+    const form = document.querySelector("#add-form");
+    form.addEventListener("submit", (e) => this.sendForm(e, formModal, form));
+  }
+
+  createFormModal() {
+    const formModal = document.createElement("div");
+    formModal.classList.add("add-modal");
+    formModal.innerHTML = `
           <form id="add-form">
             <label>Input title:<input type="text" id="add__title" /></label>
             <label for="add__body">Input message</label>
@@ -70,10 +91,42 @@ class TwiApp {
             <button type="submit" form="add-form" value="Submit">Add</button>
           </form>
         `;
+    return formModal;
+  }
 
-      document.body.prepend(formModal);
-      Card.handleAdd();
-    });
+  async sendForm(e, formModal, form) {
+    e.preventDefault();
+    const {
+      id: userId,
+      name,
+      email,
+    } = JSON.parse(sessionStorage.getItem("currentUser"));
+    const title = form.querySelector("#add__title").value;
+    const body = form.querySelector("#add__body").value;
+    try {
+      const response = await this.httpClient.postPost(userId, title, body);
+
+      if (response.ok) {
+        const { userId, id, title, body } = await response.json();
+        formModal.remove();
+        await this.renderCards([
+          new Card(userId, name, email, id, title, body),
+        ]);
+      }
+    } catch (e) {
+      console.log(e.message);
+    }
+  }
+
+  async handleDelete(deleteBtn) {
+    const card = deleteBtn?.closest.call(deleteBtn, ".card");
+    const response = await this.httpClient.deletePost(card.dataset.postid);
+
+    if (response.ok) {
+      card.remove();
+    } else {
+      console.log(response.message);
+    }
   }
 
   async generateCards() {
@@ -84,29 +137,27 @@ class TwiApp {
 
     const userMap = new Map(usersData.map((user) => [user.id, user]));
 
-    return postsData.reduce((acc, { id: postId, userId, title, body }) => {
-      const { name, email } = userMap.get(userId);
-      acc.push(new Card(userId, name, email, postId, title, body));
+    sessionStorage.setItem(
+      // Saving random 'current' user data to use it for new posts
+      "currentUser",
+      JSON.stringify(userMap.get(Math.floor(Math.random() * 10) + 1))
+    );
 
-      return acc;
-    }, []);
+    return postsData.map(({ id: postId, userId, title, body }) => {
+      const { name, email } = userMap.get(userId);
+      return new Card(userId, name, email, postId, title, body);
+    });
   }
 
-  static async renderCards(cardsData) {
+  async renderCards(cardsData) {
     const cards = await cardsData;
-    const loadModal = document.querySelector(".load-modal");
-    const cardsContainer = document.querySelector(".cards");
-
-    cardsContainer.addEventListener("click", (e) => {
-      if (e.target.classList.contains("delete-btn")) {
-        Card.handleDelete(e.target);
-        e.preventDefault();
-      }
-    });
 
     cards.sort((a, b) => 0.5 - Math.random()); // Using to shuffle cards
-    loadModal.style.display = "none";
-    cards.forEach((card) => cardsContainer.prepend(card.createCard()));
+
+    this.loadModal.style.display = "none";
+    cards.forEach((card) =>
+      this.cardsContainer.prepend(card.createCardElement())
+    );
   }
 }
 
@@ -120,7 +171,7 @@ class Card {
     this.body = body;
   }
 
-  createCard() {
+  createCardElement() {
     const cardContainer = document.createElement("div");
     cardContainer.className = "card";
     cardContainer.dataset.postid = this.postId;
@@ -135,45 +186,7 @@ class Card {
 
     return cardContainer;
   }
-
-  static async handleAdd() {
-    const formModal = document.querySelector(".add-modal");
-    const form = document.querySelector("#add-form");
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const userId = "1";
-      const title = form.querySelector("#add__title").value || " ";
-      const body = form.querySelector("#add__body").value || " ";
-      try {
-        const response = await httpClient.postPost(userId, title, body);
-
-        if (response.ok) {
-          const { userId, id, title, body } = await response.json();
-          const addedCard = new Card(userId, "RK", "rk@gm.co", id, title, body);
-          formModal.remove();
-          console.log(addedCard);
-          await TwiApp.renderCards([addedCard]);
-        }
-      } catch (e) {
-        console.log(e.message);
-      }
-    });
-  }
-
-  static async handleDelete(deleteBtn) {
-    const card = deleteBtn.closest(".card");
-    const postId = card.dataset.postid;
-    const response = await httpClient.deletePost(postId);
-
-    if (response.ok) {
-      card.remove();
-    } else {
-      console.log(response.message);
-    }
-  }
 }
 
-const httpClient = new HttpClient();
+const httpClient = new HttpClient("https://ajax.test-danit.com/api/json/");
 const twiApp = new TwiApp(httpClient);
-
-TwiApp.renderCards(twiApp.generateCards());
