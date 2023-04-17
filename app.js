@@ -21,7 +21,7 @@ class HttpClient {
 
   async deletePost(postId) {
     try {
-      return await fetch(this.API_URL + `posts/${postId}`, {
+      return await fetch(this.API_URL + "posts/" + postId, {
         method: "DELETE",
       });
     } catch (e) {
@@ -46,10 +46,12 @@ class TwiApp {
 
   async renderCards(cardsData) {
     const cards = await cardsData;
+    const loadModal = document.querySelector(".load-modal");
     const cardsContainer = document.querySelector(".cards");
-    console.log(cards);
+
     cards.sort((a, b) => 0.5 - Math.random()); // Using to shuffle cards
 
+    loadModal.remove();
     cards.forEach((card) => cardsContainer.append(card.createCardElement()));
   }
 }
