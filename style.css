@@ -69,5 +69,9 @@
 .card {
   width: 50%;
   min-width: 600px;
-  border: 1px solid red;
+  border: 2px solid powderblue;
+}
+
+.editable {
+  border: 1px solid darkgreen;
 }

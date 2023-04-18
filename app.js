@@ -86,21 +86,25 @@ class TwiApp {
 
     this.cardsContainer.addEventListener("click", (e) => {
       e.preventDefault();
-      if (e.target.classList.contains("edit-btn")) {
-        switch (e.target.innerText) {
-          case "Edit post":
-            this.handleEdit(e.target);
-            return;
-          case "Save post":
-            this.handleUpdate(e.target);
-            return;
-        }
-      }
-
-      if (e.target.classList.contains("delete-btn")) {
-        this.handleDelete(e.target);
+      const target = e.target;
+      if (target.tagName === "BUTTON") {
+        this.handleCardActions(target);
       }
     });
+  }
+
+  handleCardActions(button) {
+    const card = button.closest.call(button, ".card");
+
+    if (button.classList.contains("edit-btn")) {
+      card.dataset.editing === "true"
+        ? this.handleUpdate(card)
+        : this.handleEdit(card);
+    }
+
+    if (button.classList.contains("delete-btn")) {
+      this.handleDelete(card);
+    }
   }
 
   async handleAdd() {
@@ -148,27 +152,33 @@ class TwiApp {
     }
   }
 
-  switchEditable(editBtn, isEditable) {
-    const card = editBtn?.closest.call(editBtn, ".card");
+  handleEdit(card) {
+    this.switchEditable(card, true);
+  }
+
+  switchEditable(card, isEditable) {
+    const editBtn = card.querySelector(".edit-btn");
     card.querySelector(".card__title").contentEditable = `${isEditable}`;
     card.querySelector(".card__content").contentEditable = `${isEditable}`;
-    isEditable
-      ? (editBtn.innerText = "Save post")
-      : (editBtn.innerText = "Edit post");
+
+    if (isEditable) {
+      card.dataset.editing = "true";
+      card.querySelector(".card__title").classList.add("editable");
+      card.querySelector(".card__content").classList.add("editable");
+      editBtn.innerText = "Save post";
+    } else {
+      delete card.dataset.editing;
+      card.querySelector(".card__title").classList.remove("editable");
+      card.querySelector(".card__content").classList.remove("editable");
+      editBtn.innerText = "Edit post";
+    }
   }
 
-  handleEdit(editBtn) {
-    this.switchEditable(editBtn, true);
-  }
-
-  async handleUpdate(editBtn) {
-    const card = editBtn?.closest.call(editBtn, ".card");
+  async handleUpdate(card) {
     const postId = card.dataset.postid;
     const userId = card.dataset.userid;
     const title = card.querySelector(".card__title").innerText;
     const body = card.querySelector(".card__content").innerText;
-
-    console.log(title, body);
 
     const response = await this.httpClient.updatePost(
       postId,
@@ -178,14 +188,13 @@ class TwiApp {
     );
 
     if (response.ok) {
-      this.switchEditable(editBtn, false);
+      this.switchEditable(card, false);
     } else {
       console.log(response.message);
     }
   }
 
-  async handleDelete(deleteBtn) {
-    const card = deleteBtn?.closest.call(deleteBtn, ".card");
+  async handleDelete(card) {
     const response = await this.httpClient.deletePost(card.dataset.postid);
 
     if (response.ok) {
