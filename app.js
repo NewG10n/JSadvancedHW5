@@ -45,6 +45,7 @@ class HttpClient {
         method: "PUT",
         body: JSON.stringify({
           userId: userId,
+          id: postId,
           title: title,
           body: body,
         }),
@@ -155,6 +156,7 @@ class TwiApp {
       ? (editBtn.innerText = "Save post")
       : (editBtn.innerText = "Edit post");
   }
+
   handleEdit(editBtn) {
     this.switchEditable(editBtn, true);
   }
@@ -163,8 +165,10 @@ class TwiApp {
     const card = editBtn?.closest.call(editBtn, ".card");
     const postId = card.dataset.postid;
     const userId = card.dataset.userid;
-    const title = card.querySelector(".card__title").value;
-    const body = card.querySelector(".card__content").value;
+    const title = card.querySelector(".card__title").innerText;
+    const body = card.querySelector(".card__content").innerText;
+
+    console.log(title, body);
 
     const response = await this.httpClient.updatePost(
       postId,
