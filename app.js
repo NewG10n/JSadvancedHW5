@@ -39,6 +39,24 @@ class HttpClient {
     }
   }
 
+  async updatePost(postId, userId, title, body) {
+    try {
+      return await fetch(this.postsURL + postId, {
+        method: "PUT",
+        body: JSON.stringify({
+          userId: userId,
+          title: title,
+          body: body,
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+    } catch (e) {
+      console.log(e.message);
+    }
+  }
+
   async deletePost(postId) {
     try {
       return await fetch(this.postsURL + postId, {
@@ -66,8 +84,19 @@ class TwiApp {
     });
 
     this.cardsContainer.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (e.target.classList.contains("edit-btn")) {
+        switch (e.target.innerText) {
+          case "Edit post":
+            this.handleEdit(e.target);
+            return;
+          case "Save post":
+            this.handleUpdate(e.target);
+            return;
+        }
+      }
+
       if (e.target.classList.contains("delete-btn")) {
-        e.preventDefault();
         this.handleDelete(e.target);
       }
     });
@@ -115,6 +144,39 @@ class TwiApp {
       }
     } catch (e) {
       console.log(e.message);
+    }
+  }
+
+  switchEditable(editBtn, isEditable) {
+    const card = editBtn?.closest.call(editBtn, ".card");
+    card.querySelector(".card__title").contentEditable = `${isEditable}`;
+    card.querySelector(".card__content").contentEditable = `${isEditable}`;
+    isEditable
+      ? (editBtn.innerText = "Save post")
+      : (editBtn.innerText = "Edit post");
+  }
+  handleEdit(editBtn) {
+    this.switchEditable(editBtn, true);
+  }
+
+  async handleUpdate(editBtn) {
+    const card = editBtn?.closest.call(editBtn, ".card");
+    const postId = card.dataset.postid;
+    const userId = card.dataset.userid;
+    const title = card.querySelector(".card__title").value;
+    const body = card.querySelector(".card__content").value;
+
+    const response = await this.httpClient.updatePost(
+      postId,
+      userId,
+      title,
+      body
+    );
+
+    if (response.ok) {
+      this.switchEditable(editBtn, false);
+    } else {
+      console.log(response.message);
     }
   }
 
@@ -174,6 +236,7 @@ class Card {
   createCardElement() {
     const cardContainer = document.createElement("div");
     cardContainer.className = "card";
+    cardContainer.dataset.userid = this.userId;
     cardContainer.dataset.postid = this.postId;
 
     cardContainer.innerHTML = `
@@ -181,6 +244,7 @@ class Card {
       <p class="card__email">${this.email}</p>
       <h3 class="card__title">${this.title}</h3>
       <p class="card__content">${this.body}</p>
+      <button class="edit-btn">Edit post</button>
       <button class="delete-btn">Delete post</button>
     `;
 
